@@ -68,16 +68,128 @@ namespace sh4bin
                     // Advance the stream to the file's offset
                     reader.BaseStream.Position = offset;
 
-                    var filePath = i + ".chunk";
-
                     if (nextFileOffset != 0)
                     {
+                        var filePath = i + ".chunk";
+
+                        // Attempt to guess what kind of chunk type it is
+                        // This is pretty fucking rough but there's no real other way to do this besides have a chunk dictionary which would take *forever* to create
+
+                        // Store the original position so we can return to the chunk after attempting to read it's "magic"
+                        long originalPosition = reader.BaseStream.Position;
+
+                        // Read the "magics"
+                        // The second magic will always match the first if the file is texture data, because the two magics in that case aren't actually magics but the texture and palette count
+                        // However this does not seem to always be the case, but it is in ~90% of scenarios, good enough
+                        int magic = reader.ReadInt16();
+                        int magic2 = reader.ReadInt16();
+
+                        if (magic == magic2)
+                        {
+                            filePath = i + ".textures";
+                            Console.WriteLine("Chunk type: Textures");
+                        }
+                        else
+                        {
+                            switch (magic)
+                            {
+                                // Unknown data, looks like 3d coordinates though
+                                case 0xFF11:
+                                    filePath = i + ".unknown3dData";
+                                    Console.WriteLine("Chunk type: Unknown 3D data");
+                                    break;
+                                // Model data always starts with 0x0003
+                                case 0x0003:
+                                    filePath = i + ".mesh";
+                                    Console.WriteLine("Chunk type: 3D Mesh data");
+                                    break;
+                                // SDB files embedded in a .bin
+                                case 0x8581:
+                                    filePath = i + ".sdb";
+                                    Console.WriteLine("Chunk type: .SDB file");
+                                    break;
+                                // List of monster internal IDs
+                                case 0x4554:
+                                    filePath = i + ".monsterIDList";
+                                    Console.WriteLine("Chunk type: Monster ID list");
+                                    break;
+                                // Chunk with SLGT magic, not sure what this controls
+                                case 0x4C53:
+                                    filePath = i + ".slgt";
+                                    Console.WriteLine("Chunk type: SLGT file");
+                                    break;
+                                // No magic found
+                                default:
+                                    Console.WriteLine("Chunk type: Unknown");
+                                    break;
+                            }
+                        }
+                        // Return to the beginning of the chunk
+                        reader.BaseStream.Position = originalPosition;
+
                         // Attempt to read from the current file until the next one begins
                         Directory.CreateDirectory(args[2]);
                         File.WriteAllBytes(args[2]+"/"+filePath, reader.ReadBytes(nextFileOffset - offset));
                     }
                     else
                     {
+                        var filePath = i + ".chunk";
+
+                        // Attempt to guess what kind of chunk type it is
+                        // This is pretty fucking rough but there's no real other way to do this besides have a chunk dictionary which would take *forever* to create
+
+                        // Store the original position so we can return to the chunk after attempting to read it's "magic"
+                        long originalPosition = reader.BaseStream.Position;
+
+                        // Read the "magics"
+                        // The second magic will always match the first if the file is texture data, because the two magics in that case aren't actually magics but the texture and palette count
+                        // However this does not seem to always be the case, but it is in ~90% of scenarios, good enough
+                        int magic = reader.ReadInt16();
+                        int magic2 = reader.ReadInt16();
+
+                        if (magic == magic2)
+                        {
+                            filePath = i + ".textures";
+                            Console.WriteLine("Chunk type: Textures");
+                        }
+                        else
+                        {
+                            switch (magic)
+                            {
+                                // Unknown data, looks like 3d coordinates though
+                                case 0xFF11:
+                                    filePath = i + ".unknown3dData";
+                                    Console.WriteLine("Chunk type: Unknown 3D data");
+                                    break;
+                                // Model data seemingly always starts with 0x0003
+                                case 0x0003:
+                                    filePath = i + ".mesh";
+                                    Console.WriteLine("Chunk type: 3D Mesh data");
+                                    break;
+                                // SDB files embedded in a .bin
+                                case 0x8581:
+                                    filePath = i + ".sdb";
+                                    Console.WriteLine("Chunk type: .SDB file");
+                                    break;
+                                // List of monster internal IDs
+                                case 0x4554:
+                                    filePath = i + ".monsterIDList";
+                                    Console.WriteLine("Chunk type: Monster ID list");
+                                    break;
+                                // Chunk with SLGT magic, not sure what this controls
+                                case 0x4C53:
+                                    filePath = i + ".slgt";
+                                    Console.WriteLine("Chunk type: SLGT file");
+                                    break;
+                                // No magic found
+                                default:
+                                    Console.WriteLine("Chunk type: Unknown");
+                                    break;
+                            }
+                        }
+                        // Return to the beginning of the chunk
+                        reader.BaseStream.Position = originalPosition;
+
                         // Read to EOF since we're at the final file
                         Directory.CreateDirectory(args[2]);
                         File.WriteAllBytes(args[2] + "/" + filePath, reader.ReadBytes(Convert.ToInt32(reader.BaseStream.Length) - offset));
