@@ -118,6 +118,16 @@ namespace sh4bin
                                     filePath = i + ".slgt";
                                     Console.WriteLine("Chunk type: SLGT file");
                                     break;
+                                // Check if the second magic is also 0xFF01 which indicates animation data
+                                // If not just jump to unknown chunk
+                                case 0x0001:
+                                    if (magic2 != -255)
+                                    {
+                                        goto default;
+                                    }
+                                    filePath = i + ".anim";
+                                    Console.WriteLine("Chunk type: Animation");
+                                    break;
                                 // No magic found
                                 default:
                                     Console.WriteLine("Chunk type: Unknown");
@@ -130,6 +140,9 @@ namespace sh4bin
                         // Attempt to read from the current file until the next one begins
                         Directory.CreateDirectory(args[2]);
                         File.WriteAllBytes(args[2]+"/"+filePath, reader.ReadBytes(nextFileOffset - offset));
+
+                        // Print a new line so the output is easier to read at a glance
+                        Console.WriteLine();
                     }
                     else
                     {
@@ -181,23 +194,39 @@ namespace sh4bin
                                     filePath = i + ".slgt";
                                     Console.WriteLine("Chunk type: SLGT file");
                                     break;
+                                case 0x0001:
+                                    if (magic2 != -255)
+                                    {
+                                        goto default;
+                                    }
+                                    filePath = i + ".anim";
+                                    Console.WriteLine("Chunk type: Animation");
+                                    break;
                                 // No magic found
                                 default:
                                     Console.WriteLine("Chunk type: Unknown");
                                     break;
                             }
                         }
+
                         // Return to the beginning of the chunk
                         reader.BaseStream.Position = originalPosition;
 
                         // Read to EOF since we're at the final file
                         Directory.CreateDirectory(args[2]);
                         File.WriteAllBytes(args[2] + "/" + filePath, reader.ReadBytes(Convert.ToInt32(reader.BaseStream.Length) - offset));
+
+                        // Print a new line so the output is easier to read at a glance
+                        Console.WriteLine();
                     }
 
                     // Reset base stream position
                     reader.BaseStream.Position = origPos;
                 }
+
+                // Close the reader and the file because we are done using the files
+                reader.Close();
+                file.Close();
             }
 
             if (args[0] == "pack")
@@ -222,7 +251,7 @@ namespace sh4bin
 
                 // Leave enough space for 1024 files
                 // TODO: Figure out why the game crashes when using any repacked bin file
-                int tempLength = 0x400;
+                int tempLength = 0x300;
 
                 // Loop through every bin chunk in the output directory and build a bin file from it
                 foreach(string inputFile in files)
@@ -244,13 +273,14 @@ namespace sh4bin
                 }
 
                 // Append extra bytes to pad the bin header to 0x2000
-                writer.Write(new byte[0x400 - writer.BaseStream.Length]);
+                writer.Write(new byte[0x300 - writer.BaseStream.Length]);
 
                 // Write the bin body to the bin file
                 writer.Write(binBody.ToArray());
 
-                // Close the binary writer
+                // Close the binary writer and file
                 writer.Close();
+                file.Close();
 
                 Console.WriteLine(args[2] + " successfully created!");
             }
