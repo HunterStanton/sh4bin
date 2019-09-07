@@ -251,7 +251,8 @@ namespace sh4bin
 
                 // Leave enough space for 1024 files
                 // TODO: Figure out why the game crashes when using any repacked bin file
-                int tempLength = 0x300;
+                int tempLength = 0x800;
+                int previousLength = 0;
 
                 // Loop through every bin chunk in the output directory and build a bin file from it
                 foreach(string inputFile in files)
@@ -259,13 +260,11 @@ namespace sh4bin
                     // Write the file's offset into the new header
                     long length = new System.IO.FileInfo(inputFile).Length;
 
-                    if (inputFile != files.First())
-                    {
-                        tempLength = Convert.ToInt32(length + tempLength);
-                    }
-
                     // Write the offset of the file to the bin header
-                    writer.Write(tempLength);
+                    writer.Write(tempLength + previousLength);
+
+                    previousLength = previousLength + Convert.ToInt32(length);
+
 
                     // Append the current bin chunk to the bin body
                     binBody.AddRange(File.ReadAllBytes(inputFile));
@@ -273,7 +272,7 @@ namespace sh4bin
                 }
 
                 // Append extra bytes to pad the bin header to 0x2000
-                writer.Write(new byte[0x300 - writer.BaseStream.Length]);
+                writer.Write(new byte[0x800 - writer.BaseStream.Length]);
 
                 // Write the bin body to the bin file
                 writer.Write(binBody.ToArray());
