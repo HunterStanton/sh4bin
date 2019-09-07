@@ -1,6 +1,8 @@
 
 # sh4bin
-A tool to unpack/repack Silent Hill 4 .bin files. Is able to repack and unpack all Silent Hill 4 bin files successfully, however they do not currently load in-game and just crash.
+A tool to unpack/repack Silent Hill 4 .bin files. Is able to repack and unpack all Silent Hill 4 bin files successfully. It supports .bins with any number of chunks. In fact, it can unpack and repack bins with 512 chunks, way more than any .bin that shipped with SH4.
+
+**This is a low-level tool. If you are not familiar with the command line and a hex editor, you will not be able to use this tool for anything meaningful.**
 
 ## Usage
 * sh4bin.exe pack < input directory> <file.bin> - Packs a bin file from loose files in a folder
@@ -20,8 +22,6 @@ This utility is capable of fingerprinting .bin chunk types automatically when th
 This is based on a "magic" that holds true for the majority of the .bin chunk types, however some fall through the cracks and won't get identified properly. I'm working to eventually be able to accurately identify every possible chunk type, but this will take some time to manually verify everything. For now though, it should work and provide a bit more insight into what the .bin file chunks actually are for further research and analysis or modification.
 
 ## To-Do
-### Game Crash When Repacking Bins
-Figure out if there is some sort of offset directory or table somewhere, because *all* repacked bins currently crash the game due to the way that offsets are calculated. If this cannot be overcome, then I will eventually create a "magic" file in the output directory that tells sh4bin how to set the offsets up as they were in the original bin. This way, it should be possible to actually *use* the repacked bin files. Right now the game just crashes, even though the bins it creates are absolutely correct in a technical sense.
 
 ### Possible Future Improvements
 The code could use some optimizations and could be simplified by someone who is actually good at C#. Swift is my wheelhouse, I haven't written much C# in a long time.
@@ -30,7 +30,7 @@ The code could use some optimizations and could be simplified by someone who is 
 Right now if sh4bin cannot get a handle on a file (such as if it is being used) it will throw an exception and crash. In the future I would like to add error handling so that the user isn't left to parse an exception to figure out what went wrong.
 
 ## Compatibility
-This tool correctly unpacks .bin files from all Silent Hill 4 versions (PC, XBox, and PS2). Repacking will also technically work, but will crash the game on all versions due to the problem mentioned above. 
+This tool correctly unpacks .bin files from all Silent Hill 4 versions (PC, XBox, and PS2). Repacking is also supported on all platforms.
 
 ## Credits
 * Hunter Stanton (@hunterstanton)
