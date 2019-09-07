@@ -240,8 +240,10 @@ namespace sh4bin
                 // Get the files inside the output directory
                 string[] files = Directory.GetFiles(args[1]);
 
+                var sortedFiles = files.CustomSort().ToArray();
+
                 // Grab the number of files inside the user's output directory
-                int fileCount = files.Length;
+                int fileCount = sortedFiles.Length;
 
                 Console.WriteLine("Number of files in new .bin: " + fileCount);
 
@@ -255,7 +257,7 @@ namespace sh4bin
                 int previousLength = 0;
 
                 // Loop through every bin chunk in the output directory and build a bin file from it
-                foreach(string inputFile in files)
+                foreach(string inputFile in sortedFiles)
                 {
                     // Write the file's offset into the new header
                     long length = new System.IO.FileInfo(inputFile).Length;
