@@ -251,18 +251,48 @@ namespace sh4bin
 
                 writer.Write(fileCount);
 
-                // Leave enough space for 1024 files
-                // TODO: Figure out why the game crashes when using any repacked bin file
-                int tempLength = 0x800;
+                // The game seems to have a couple of "safe" values for how much padding is in the header before things go wrong
+                // For example, using 0x800 (which allows for 512 chunks in a bin, way more than any bin the game normally uses) stuff will load, but things will break and probably crash eventually
+                // Henry's cutscene model for example looks and loads great, but his shadows go wonky and it will crash in random cutscenes, so we want to avoid this at all costs by using a set of if statements to determine what padding to give the header based the original bins
+
+                int padding = 0x0;
+
+                // Determine what padding to use depending on how many chunks are in the bin
+                if (fileCount < 0x1F)
+                {
+                    padding = 0x80;
+                }
+
+                if (fileCount > 0x1F && fileCount < 0x3F)
+                {
+                    padding = 0x100;
+                }
+
+                if (fileCount > 0x3F && fileCount < 0x5F)
+                {
+                    padding = 0x180;
+                }
+
+                if (fileCount > 0x5F && fileCount < 0x7F)
+                {
+                    padding = 0x200;
+                }
+
+                if (fileCount > 0x7F && fileCount < 0xBF)
+                {
+                    padding = 0x300;
+                }
+
+                int tempLength = padding + 0x0;
                 int previousLength = 0;
 
-                // Loop through every bin chunk in the output directory and build a bin file from it
+                // Loop through every bin chunk in the output directory and build a new bin file from it
                 foreach(string inputFile in sortedFiles)
                 {
                     // Write the file's offset into the new header
                     long length = new System.IO.FileInfo(inputFile).Length;
 
-                    // Write the offset of the file to the bin header
+                    // Write the offset of the current file to the bin header
                     writer.Write(tempLength + previousLength);
 
                     previousLength = previousLength + Convert.ToInt32(length);
@@ -273,8 +303,8 @@ namespace sh4bin
 
                 }
 
-                // Append extra bytes to pad the bin header to 0x2000
-                writer.Write(new byte[0x800 - writer.BaseStream.Length]);
+                // Append extra bytes to pad the bin header
+                writer.Write(new byte[padding - writer.BaseStream.Length]);
 
                 // Write the bin body to the bin file
                 writer.Write(binBody.ToArray());
