@@ -81,8 +81,8 @@ namespace sh4bin
                         // Read the "magics"
                         // The second magic will always match the first if the file is texture data, because the two magics in that case aren't actually magics but the texture and palette count
                         // However this does not seem to always be the case, but it is in ~90% of scenarios, good enough
-                        int magic = reader.ReadInt16();
-                        int magic2 = reader.ReadInt16();
+                        uint magic = reader.ReadUInt16();
+                        uint magic2 = reader.ReadUInt16();
 
                         if (magic == magic2)
                         {
@@ -95,8 +95,8 @@ namespace sh4bin
                             {
                                 // Unknown data, looks like 3d coordinates though
                                 case 0xFF11:
-                                    filePath = i + ".unknown3dData";
-                                    Console.WriteLine("Chunk type: Unknown 3D data");
+                                    filePath = i + ".coll_mesh";
+                                    Console.WriteLine("Chunk type: World collision mesh");
                                     break;
                                 // Model data always starts with 0x0003
                                 case 0x0003:
@@ -121,13 +121,19 @@ namespace sh4bin
                                 // Check if the second magic is also 0xFF01 which indicates animation data
                                 // If not just jump to unknown chunk
                                 case 0x0001:
-                                    if (magic2 != -255)
+                                    if (magic2 == 0xFF01)
                                     {
-                                        goto default;
+                                        filePath = i + ".anim";
+                                        Console.WriteLine("Chunk type: Animation");
+                                        break;
                                     }
-                                    filePath = i + ".anim";
-                                    Console.WriteLine("Chunk type: Animation");
-                                    break;
+                                    if (magic2 == 0xFC03)
+                                    {
+                                        filePath = i + ".world_mesh";
+                                        Console.WriteLine("Chunk type: World 3D Mesh data");
+                                        break;
+                                    }
+                                    goto default;
                                 // No magic found
                                 default:
                                     Console.WriteLine("Chunk type: Unknown");
@@ -157,8 +163,8 @@ namespace sh4bin
                         // Read the "magics"
                         // The second magic will always match the first if the file is texture data, because the two magics in that case aren't actually magics but the texture and palette count
                         // However this does not seem to always be the case, but it is in ~90% of scenarios, good enough
-                        int magic = reader.ReadInt16();
-                        int magic2 = reader.ReadInt16();
+                        uint magic = reader.ReadUInt16();
+                        uint magic2 = reader.ReadUInt16();
 
                         if (magic == magic2)
                         {
@@ -171,10 +177,10 @@ namespace sh4bin
                             {
                                 // Unknown data, looks like 3d coordinates though
                                 case 0xFF11:
-                                    filePath = i + ".unknown3dData";
-                                    Console.WriteLine("Chunk type: Unknown 3D data");
+                                    filePath = i + ".coll_mesh";
+                                    Console.WriteLine("Chunk type: World collision mesh");
                                     break;
-                                // Model data seemingly always starts with 0x0003
+                                // Model data always starts with 0x0003
                                 case 0x0003:
                                     filePath = i + ".mesh";
                                     Console.WriteLine("Chunk type: 3D Mesh data");
@@ -194,14 +200,22 @@ namespace sh4bin
                                     filePath = i + ".slgt";
                                     Console.WriteLine("Chunk type: SLGT file");
                                     break;
+                                // Check if the second magic is also 0xFF01 which indicates animation data
+                                // If not just jump to unknown chunk
                                 case 0x0001:
-                                    if (magic2 != -255)
+                                    if (magic2 == 0xFF01)
                                     {
-                                        goto default;
+                                        filePath = i + ".anim";
+                                        Console.WriteLine("Chunk type: Animation");
+                                        break;
                                     }
-                                    filePath = i + ".anim";
-                                    Console.WriteLine("Chunk type: Animation");
-                                    break;
+                                    if (magic2 == 0xFC03)
+                                    {
+                                        filePath = i + ".world_mesh";
+                                        Console.WriteLine("Chunk type: World 3D Mesh data");
+                                        break;
+                                    }
+                                    goto default;
                                 // No magic found
                                 default:
                                     Console.WriteLine("Chunk type: Unknown");
@@ -278,7 +292,13 @@ namespace sh4bin
                     padding = 0x200;
                 }
 
-                if (fileCount > 0x7F && fileCount < 0xBF)
+                // This one doesn't seem to be used by any existing bins, but we'll put it here anyway
+                if (fileCount > 0x7F && fileCount < 0x9F)
+                {
+                    padding = 0x280;
+                }
+
+                if (fileCount > 0x9F && fileCount < 0xBF)
                 {
                     padding = 0x300;
                 }
