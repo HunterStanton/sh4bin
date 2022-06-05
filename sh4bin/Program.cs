@@ -10,7 +10,7 @@ namespace sh4bin
     {
         static void Main(string[] args)
         {
-            if (args.Length <= 2 && args.Length >= 3)
+            if (args.Length < 2 || args.Length > 3)
             {
                 Console.WriteLine("sh4bin\nA tool for unpacking and repacking Silent Hill 4 .bin files into their chunks.\nThis does *NOT* extract textures, sounds, anims, etc. It simply splits .bin files into the chunks they contain - further tools would be needed to edit the textures/models/etc.\nUsage:\nsh4bin <file.bin> <output directory> - Unpacks a .bin file into chunks into the specified output directory\nsh4bin <output directory> <file.bin> - Packs bin file chunks into the specified .bin file\nsh4bin analyze <file.bin> - Analyzes a .bin file and tells you information about it");
                 return;
@@ -30,7 +30,7 @@ namespace sh4bin
 
                 Console.WriteLine("Number of files in .bin: " + fileCount);
 
-                for (int i = 0;i < fileCount;i++)
+                for (int i = 0; i < fileCount; i++)
                 {
                     int offset = reader.ReadInt32();
                     Console.WriteLine("Bin chunk file offset: " + offset.ToString("X"));
@@ -38,7 +38,7 @@ namespace sh4bin
                     // Console.WriteLine("Bin chunk type: " + 0);
                 }
 
-                
+
             }
 
             if (args[0] == "unpack")
@@ -93,7 +93,16 @@ namespace sh4bin
                         {
                             switch (magic)
                             {
-                                // Unknown data, looks like 3d coordinates though
+                                // Shadow mesh
+                                case 0x7000:
+                                    if (magic2 == 0x0FC0)
+                                    {
+                                        filePath = i + ".shadow_mesh";
+                                        Console.WriteLine("Chunk type: Shadow mesh");
+                                        break;
+                                    }
+                                    goto default;
+                                // World collision mesh
                                 case 0xFF11:
                                     filePath = i + ".coll_mesh";
                                     Console.WriteLine("Chunk type: World collision mesh");
@@ -109,11 +118,12 @@ namespace sh4bin
                                     Console.WriteLine("Chunk type: .SDB file");
                                     break;
                                 // List of monster internal IDs
+                                // Does not appear to be used for anything
                                 case 0x4554:
                                     filePath = i + ".monsterIDList";
                                     Console.WriteLine("Chunk type: Monster ID list");
                                     break;
-                                // Chunk with SLGT magic, not sure what this controls
+                                // SLGT chunk, controls lighting parameters for a room
                                 case 0x4C53:
                                     filePath = i + ".slgt";
                                     Console.WriteLine("Chunk type: SLGT file");
@@ -145,7 +155,7 @@ namespace sh4bin
 
                         // Attempt to read from the current file until the next one begins
                         Directory.CreateDirectory(args[2]);
-                        File.WriteAllBytes(args[2]+"/"+filePath, reader.ReadBytes(nextFileOffset - offset));
+                        File.WriteAllBytes(args[2] + "/" + filePath, reader.ReadBytes(nextFileOffset - offset));
 
                         // Print a new line so the output is easier to read at a glance
                         Console.WriteLine();
@@ -175,7 +185,16 @@ namespace sh4bin
                         {
                             switch (magic)
                             {
-                                // Unknown data, looks like 3d coordinates though
+                                // Shadow mesh
+                                case 0x7000:
+                                    if (magic2 == 0x0FC0)
+                                    {
+                                        filePath = i + ".shadow_mesh";
+                                        Console.WriteLine("Chunk type: Shadow mesh");
+                                        break;
+                                    }
+                                    goto default;
+                                // World collision mesh
                                 case 0xFF11:
                                     filePath = i + ".coll_mesh";
                                     Console.WriteLine("Chunk type: World collision mesh");
@@ -191,11 +210,12 @@ namespace sh4bin
                                     Console.WriteLine("Chunk type: .SDB file");
                                     break;
                                 // List of monster internal IDs
+                                // Does not appear to be used for anything
                                 case 0x4554:
                                     filePath = i + ".monsterIDList";
                                     Console.WriteLine("Chunk type: Monster ID list");
                                     break;
-                                // Chunk with SLGT magic, not sure what this controls
+                                // SLGT chunk, controls lighting parameters for a room
                                 case 0x4C53:
                                     filePath = i + ".slgt";
                                     Console.WriteLine("Chunk type: SLGT file");
@@ -307,7 +327,7 @@ namespace sh4bin
                 int previousLength = 0;
 
                 // Loop through every bin chunk in the output directory and build a new bin file from it
-                foreach(string inputFile in sortedFiles)
+                foreach (string inputFile in sortedFiles)
                 {
                     // Write the file's offset into the new header
                     long length = new System.IO.FileInfo(inputFile).Length;
