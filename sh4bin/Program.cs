@@ -10,7 +10,7 @@ namespace sh4bin
     {
         static void Main(string[] args)
         {
-            if (args.Length != 3)
+            if (args.Length <= 2 && args.Length >= 3)
             {
                 Console.WriteLine("sh4bin\nA tool for unpacking and repacking Silent Hill 4 .bin files into their chunks.\nThis does *NOT* extract textures, sounds, anims, etc. It simply splits .bin files into the chunks they contain - further tools would be needed to edit the textures/models/etc.\nUsage:\nsh4bin <file.bin> <output directory> - Unpacks a .bin file into chunks into the specified output directory\nsh4bin <output directory> <file.bin> - Packs bin file chunks into the specified .bin file\nsh4bin analyze <file.bin> - Analyzes a .bin file and tells you information about it");
                 return;
