@@ -13,6 +13,10 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: sh4bin
 
     steps:
     - uses: actions/checkout@v3
