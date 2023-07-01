@@ -12,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     
     defaults:
       run:
@@ -27,6 +27,19 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet build --configuration Release --no-restore
+    - name: Create zip
+      run: |
+        Compress-Archive -Path "./bin/Release/net6.0/*" -DestinationPath "D:\a\sh4bin\sh4bin\sh4bin\sh4bin_nightly.zip" -Force
+      shell: powershell
+    - name: Deploy Nightly
+      uses: WebFreak001/deploy-nightly@v2.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: https://uploads.github.com/repos/HunterStanton/sh4bin/releases/110559465/assets{?name,label}
+        release_id: 110559465
+        asset_path: D:\a\sh4bin\sh4bin\sh4bin\sh4bin_nightly.zip
+        asset_name: sh4bin_windows-nightly-$$.zip
+        asset_content_type: application/zip
+        max_releases: 1
