@@ -1,36 +1,42 @@
-
 # sh4bin
-A tool to unpack/repack Silent Hill 4 .bin files. Is able to repack and unpack all Silent Hill 4 bin files successfully. It supports .bins with any number of chunks. In fact, it can unpack and repack bins with 512 chunks, way more than any .bin that shipped with SH4.
+
+A tool to unpack/repack Silent Hill 4 .bin files. sh4bin is capable of perfectly unpacking and repacking all Silent Hill 4 bin files successfully.
 
 **This is a low-level tool. If you are not familiar with the command line and a hex editor, you will not be able to use this tool for anything meaningful.**
 
-## Usage
-* sh4bin.exe pack < input directory> <file.bin> - Packs a bin file from loose files in a folder
-* sh4bin.exe unpack <file.bin> < output directory> - Unpacks a bin into an output directory
-* sh4bin.exe analyze <file.bin> - Analyzes a Silent Hill 4 bin file and tells you information about it
+## Building
 
-Silent Hill 4 .bin files are very devoid of information regarding naming, so it is difficult to tell what things are (the chunks have no name anywhere, they are simply referenced by some sort of index in the executable when they are needed) so keep this in mind when you unpack a .bin. However, the file extension that is provided by fingerprinting when unpacking can shed a bit of light on what type of data is contained in the chunk.
+sh4bin uses .NET 6.0 and as such it can be built for any platform and architecture that is supported by .NET 6.0. Just run `dotnet build` to compile it.
+
+## Usage
+
+* `sh4bin pack < input directory> <file.bin>` - Packs a bin file from loose files in a folder
+* `sh4bin unpack <file.bin> < output directory>` - Unpacks a bin into an output directory
+* `sh4bin analyze <file.bin>` - Analyzes a Silent Hill 4 bin file and tells you information about it without unpacking
 
 ## Chunk Type Fingerprinting
-This utility is capable of fingerprinting .bin chunk types automatically when they are extracted. For example, it can identify the following (and more) chunk types with a decent level of accuracy:
+
+Silent Hill 4 .bin files do not include any naming information, so it is difficult to tell what things are beyond the filename of the .bin itself.
+
+That being said, sh4bin is capable of fingerprinting .bin chunk types automatically when they are extracted. For example, it can identify the following chunk types with a high level of accuracy:
+
 * Texture chunks
-* 3D Mesh Data
+* Object mesh chunks
+* World mesh chunks
+* Collision mesh chunks
 * .sdb File chunks
 * SLGT chunks
 * Animation chunks
+* Shadow mesh chunks
 
-This is based on a "magic" that holds true for the majority of the .bin chunk types, however some fall through the cracks and won't get identified properly. I'm working to eventually be able to accurately identify every possible chunk type, but this will take some time to manually verify everything. For now though, it should work and provide a bit more insight into what the .bin file chunks actually are for further research and analysis or modification.
+It does this by looking for magic bytes to identify the type of data that is in the chunk.
 
-## To-Do
-
-### Possible Future Improvements
-The code could use some optimizations and could be simplified by someone who is actually good at C#. Swift is my wheelhouse, I haven't written much C# in a long time.
-
-### Error Handling
-Right now if sh4bin cannot get a handle on a file (such as if it is being used) it will throw an exception and crash. In the future I would like to add error handling so that the user isn't left to parse an exception to figure out what went wrong.
+# 
 
 ## Compatibility
-This tool correctly unpacks .bin files from all Silent Hill 4 versions (PC, XBox, and PS2). Repacking is also supported on all platforms.
+
+This tool correctly unpacks and repacks .bin files from all Silent Hill 4 versions on all platforms.
 
 ## Credits
-* Hunter Stanton (@hunterstanton)
+
+* Hunter Stanton (@hun10sta)

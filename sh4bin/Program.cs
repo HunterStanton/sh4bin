@@ -7,148 +7,143 @@ namespace sh4bin
 {
     class Program
     {
+        static ChunkType IdentifyChunkType(uint magic, uint magic2)
+        {
+            ChunkType info = new ChunkType();
+
+            if (magic == magic2)
+            {
+                info.Extension = ".textures";
+                info.Name = "Textures";
+            }
+            else
+            {
+                switch (magic)
+                {
+                    case 0x7000:
+                        if (magic2 == 0x0FC0)
+                        {
+                            info.Extension = ".shadow_mesh";
+                            info.Name = "Shadow mesh";
+                            break;
+                        }
+                        goto default;
+                    case 0xFF11:
+                        info.Extension = ".coll_mesh";
+                        info.Name = "World collision mesh";
+                        break;
+                    case 0x0003:
+                        info.Extension = ".mesh";
+                        info.Name = "Object 3D mesh";
+                        break;
+                    case 0x8581:
+                        info.Extension = ".sdb";
+                        info.Name = ".SDB file";
+                        break;
+                    case 0x4554:
+                        info.Extension = ".monsterIDList";
+                        info.Name = "Monster ID list (unused by the game)";
+                        break;
+                    case 0x4C53:
+                        info.Extension = ".slgt";
+                        info.Name = "SLGT file";
+                        break;
+                    case 0x0001:
+                        if (magic2 == 0xFF01)
+                        {
+                            info.Extension = ".anim";
+                            info.Name = "Animation";
+                            break;
+                        }
+                        if (magic2 == 0xFC03)
+                        {
+                            info.Extension = ".world_mesh";
+                            info.Name = "World 3D Mesh";
+                            break;
+                        }
+                        goto default;
+                    default:
+                        info.Extension = ".chunk";
+                        info.Name = "Unknown chunk type";
+                        break;
+                }
+            }
+
+            return info;
+        }
+
         static void Main(string[] args)
         {
             if (args.Length < 2 || args.Length > 3)
             {
-                Console.WriteLine("sh4bin\nA tool for unpacking and repacking Silent Hill 4 .bin files into their chunks.\nThis does *NOT* extract textures, sounds, anims, etc. It simply splits .bin files into the chunks they contain - further tools would be needed to edit the textures/models/etc.\nUsage:\nsh4bin unpack <file.bin> <output directory> - Unpacks a .bin file into chunks into the specified output directory\nsh4bin pack <output directory> <file.bin> - Packs bin file chunks into the specified .bin file\nsh4bin analyze <file.bin> - Analyzes a .bin file and tells you information about it");
+                Console.WriteLine("sh4bin - A tool for unpacking and repacking Silent Hill 4 .bin files into their chunks." +
+                                    "\n-------------------------------------" +
+                                    "\nsh4bin unpack <file.bin> <output directory> - Unpacks a .bin file into chunks into the specified output directory" +
+                                    "\nsh4bin pack <output directory> <file.bin> - Packs .bin file chunks in a directory into the specified .bin file" +
+                                    "\nsh4bin analyze <file.bin> - Analyzes a .bin file and tells you information about it");
                 return;
             }
 
             if (args[0] == "analyze")
             {
 
-                // Open a filestream with the user selected file
                 FileStream file = new FileStream(args[1], FileMode.Open);
 
-                // Create a binary reader that will be used to read the file
                 BinaryReader reader = new BinaryReader(file);
 
-                // Grab the number of files inside the .bin
                 int fileCount = reader.ReadInt32();
 
                 Console.WriteLine("Number of files in .bin: " + fileCount);
+                Console.WriteLine("--------------------------------------");
 
                 for (int i = 0; i < fileCount; i++)
                 {
                     int offset = reader.ReadInt32();
                     Console.WriteLine("Bin chunk file offset: " + offset.ToString("X"));
-                    // Find all possible bin chunk types and figure out how to ID them
-                    // Console.WriteLine("Bin chunk type: " + 0);
+
+                    // seek to offset and identify chunk type
+                    long start = reader.BaseStream.Position;
+                    reader.BaseStream.Seek(offset, SeekOrigin.Begin);
+                    ChunkType info = IdentifyChunkType(reader.ReadUInt16(), reader.ReadUInt16());
+                    Console.WriteLine("Bin chunk type: " + info.Name);
+                    Console.WriteLine();
+                    reader.BaseStream.Position = start;
                 }
-
-
             }
 
             if (args[0] == "unpack")
             {
-                // Open a filestream with the user selected file
                 FileStream file = new FileStream(args[1], FileMode.Open);
 
-                // Create a binary reader that will be used to read the file
                 BinaryReader reader = new BinaryReader(file);
 
-                // Grab the number of files inside the .bin
                 int fileCount = reader.ReadInt32();
 
                 Console.WriteLine("Number of files in .bin: " + fileCount);
+                Console.WriteLine("--------------------------------------");
 
                 for (int i = 0; i < fileCount; i++)
                 {
                     int offset = reader.ReadInt32();
-                    Console.WriteLine("Bin chunk file offset: " + offset.ToString("X"));
+                    Console.WriteLine("Bin chunk file offset: 0x" + offset.ToString("X"));
 
-                    // Save the original position of the reader so we can reset it at the end
                     long origPos = reader.BaseStream.Position;
 
-                    // Read the offset of the next file
                     int nextFileOffset = reader.ReadInt32();
 
-                    // Advance the stream to the file's offset
                     reader.BaseStream.Position = offset;
 
                     if (nextFileOffset != 0)
                     {
                         var filePath = i + ".chunk";
 
-                        // Attempt to guess what kind of chunk type it is
-                        // This is pretty fucking rough but there's no real other way to do this besides have a chunk dictionary which would take *forever* to create
-
                         // Store the original position so we can return to the chunk after attempting to read it's "magic"
                         long originalPosition = reader.BaseStream.Position;
 
-                        // Read the "magics"
-                        // The second magic will always match the first if the file is texture data, because the two magics in that case aren't actually magics but the texture and palette count
-                        // However this does not seem to always be the case, but it is in ~90% of scenarios, good enough
-                        uint magic = reader.ReadUInt16();
-                        uint magic2 = reader.ReadUInt16();
+                        ChunkType info = IdentifyChunkType(reader.ReadUInt16(), reader.ReadUInt16());
+                        filePath = i + info.Extension;
+                        Console.WriteLine("Chunk type: " + info.Name);
 
-                        if (magic == magic2)
-                        {
-                            filePath = i + ".textures";
-                            Console.WriteLine("Chunk type: Textures");
-                        }
-                        else
-                        {
-                            switch (magic)
-                            {
-                                // Shadow mesh
-                                case 0x7000:
-                                    if (magic2 == 0x0FC0)
-                                    {
-                                        filePath = i + ".shadow_mesh";
-                                        Console.WriteLine("Chunk type: Shadow mesh");
-                                        break;
-                                    }
-                                    goto default;
-                                // World collision mesh
-                                case 0xFF11:
-                                    filePath = i + ".coll_mesh";
-                                    Console.WriteLine("Chunk type: World collision mesh");
-                                    break;
-                                // Model data always starts with 0x0003
-                                case 0x0003:
-                                    filePath = i + ".mesh";
-                                    Console.WriteLine("Chunk type: 3D Mesh data");
-                                    break;
-                                // SDB files embedded in a .bin
-                                case 0x8581:
-                                    filePath = i + ".sdb";
-                                    Console.WriteLine("Chunk type: .SDB file");
-                                    break;
-                                // List of monster internal IDs
-                                // Does not appear to be used for anything
-                                case 0x4554:
-                                    filePath = i + ".monsterIDList";
-                                    Console.WriteLine("Chunk type: Monster ID list");
-                                    break;
-                                // SLGT chunk, controls lighting parameters for a room
-                                case 0x4C53:
-                                    filePath = i + ".slgt";
-                                    Console.WriteLine("Chunk type: SLGT file");
-                                    break;
-                                // Check if the second magic is also 0xFF01 which indicates animation data
-                                // If not just jump to unknown chunk
-                                case 0x0001:
-                                    if (magic2 == 0xFF01)
-                                    {
-                                        filePath = i + ".anim";
-                                        Console.WriteLine("Chunk type: Animation");
-                                        break;
-                                    }
-                                    if (magic2 == 0xFC03)
-                                    {
-                                        filePath = i + ".world_mesh";
-                                        Console.WriteLine("Chunk type: World 3D Mesh data");
-                                        break;
-                                    }
-                                    goto default;
-                                // No magic found
-                                default:
-                                    Console.WriteLine("Chunk type: Unknown");
-                                    break;
-                            }
-                        }
                         // Return to the beginning of the chunk
                         reader.BaseStream.Position = originalPosition;
 
@@ -163,84 +158,12 @@ namespace sh4bin
                     {
                         var filePath = i + ".chunk";
 
-                        // Attempt to guess what kind of chunk type it is
-                        // This is pretty fucking rough but there's no real other way to do this besides have a chunk dictionary which would take *forever* to create
-
                         // Store the original position so we can return to the chunk after attempting to read it's "magic"
                         long originalPosition = reader.BaseStream.Position;
 
-                        // Read the "magics"
-                        // The second magic will always match the first if the file is texture data, because the two magics in that case aren't actually magics but the texture and palette count
-                        // However this does not seem to always be the case, but it is in ~90% of scenarios, good enough
-                        uint magic = reader.ReadUInt16();
-                        uint magic2 = reader.ReadUInt16();
-
-                        if (magic == magic2)
-                        {
-                            filePath = i + ".textures";
-                            Console.WriteLine("Chunk type: Textures");
-                        }
-                        else
-                        {
-                            switch (magic)
-                            {
-                                // Shadow mesh
-                                case 0x7000:
-                                    if (magic2 == 0x0FC0)
-                                    {
-                                        filePath = i + ".shadow_mesh";
-                                        Console.WriteLine("Chunk type: Shadow mesh");
-                                        break;
-                                    }
-                                    goto default;
-                                // World collision mesh
-                                case 0xFF11:
-                                    filePath = i + ".coll_mesh";
-                                    Console.WriteLine("Chunk type: World collision mesh");
-                                    break;
-                                // Model data always starts with 0x0003
-                                case 0x0003:
-                                    filePath = i + ".mesh";
-                                    Console.WriteLine("Chunk type: 3D Mesh data");
-                                    break;
-                                // SDB files embedded in a .bin
-                                case 0x8581:
-                                    filePath = i + ".sdb";
-                                    Console.WriteLine("Chunk type: .SDB file");
-                                    break;
-                                // List of monster internal IDs
-                                // Does not appear to be used for anything
-                                case 0x4554:
-                                    filePath = i + ".monsterIDList";
-                                    Console.WriteLine("Chunk type: Monster ID list");
-                                    break;
-                                // SLGT chunk, controls lighting parameters for a room
-                                case 0x4C53:
-                                    filePath = i + ".slgt";
-                                    Console.WriteLine("Chunk type: SLGT file");
-                                    break;
-                                // Check if the second magic is also 0xFF01 which indicates animation data
-                                // If not just jump to unknown chunk
-                                case 0x0001:
-                                    if (magic2 == 0xFF01)
-                                    {
-                                        filePath = i + ".anim";
-                                        Console.WriteLine("Chunk type: Animation");
-                                        break;
-                                    }
-                                    if (magic2 == 0xFC03)
-                                    {
-                                        filePath = i + ".world_mesh";
-                                        Console.WriteLine("Chunk type: World 3D Mesh data");
-                                        break;
-                                    }
-                                    goto default;
-                                // No magic found
-                                default:
-                                    Console.WriteLine("Chunk type: Unknown");
-                                    break;
-                            }
-                        }
+                        ChunkType info = IdentifyChunkType(reader.ReadUInt16(), reader.ReadUInt16());
+                        filePath = i + info.Extension;
+                        Console.WriteLine("Chunk type: " + info.Name);
 
                         // Return to the beginning of the chunk
                         reader.BaseStream.Position = originalPosition;
@@ -264,18 +187,14 @@ namespace sh4bin
 
             if (args[0] == "pack")
             {
-                // Create a new file
                 FileStream file = new FileStream(args[2], FileMode.Create);
 
-                // Create a binary writer that will write the new bin file
                 BinaryWriter writer = new BinaryWriter(file);
 
-                // Get the files inside the output directory
                 string[] files = Directory.GetFiles(args[1]);
 
                 var sortedFiles = files.CustomSort().ToArray();
 
-                // Grab the number of files inside the user's output directory
                 int fileCount = sortedFiles.Length;
 
                 Console.WriteLine("Number of files in new .bin: " + fileCount);
